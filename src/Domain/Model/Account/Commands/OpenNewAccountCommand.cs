@@ -30,7 +30,7 @@ namespace Domain.Model.Account.Commands
     public class OpenNewAccountCommand : Command<Account,AccountId> 
     {
         public Money OpeningBalance { get; }
-        
+        public string Reason { get; }
         public OpenNewAccountCommand(
             AccountId aggregateId,
             Money openingBalance)

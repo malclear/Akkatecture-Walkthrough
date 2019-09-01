@@ -65,9 +65,6 @@ namespace Domain.Model.Account
             {
                 var sentEvent = new MoneySentEvent(command.Transaction);
                 Emit(sentEvent);
-
-                var feeEvent = new FeesDeductedEvent(new Money(0.25m));
-                Emit(feeEvent);
             }
             
             return true;
@@ -76,8 +73,11 @@ namespace Domain.Model.Account
         private bool Execute(ReceiveMoneyCommand command)
         {
             var moneyReceived = new MoneyReceivedEvent(command.Transaction);
-
             Emit(moneyReceived);
+            
+            // I moved the "FeesDeductedEvent" here so that the saga would be completed before it was Emitted. 
+            var feeEvent = new FeesDeductedEvent(new Money(0.25m));
+            Emit(feeEvent);
             return true;
         }
     }

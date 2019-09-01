@@ -21,9 +21,10 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-using System.Threading.Tasks;
+using System;
 using Akka.Actor;
 using Akkatecture.Aggregates;
+using Akkatecture.Core;
 using Akkatecture.Extensions;
 using Akkatecture.Sagas;
 using Akkatecture.Sagas.AggregateSaga;
@@ -46,19 +47,26 @@ namespace Domain.Sagas.MoneyTransfer
         }
         public bool Handle(IDomainEvent<Account, AccountId, MoneySentEvent> domainEvent)
         {
-            var isNewSpec = new AggregateIsNewSpecification();
-            if (isNewSpec.IsSatisfiedBy(this))
+            try
             {
-                var command = new ReceiveMoneyCommand(
-                    domainEvent.AggregateEvent.Transaction.Receiver,
-                    domainEvent.AggregateEvent.Transaction);
-            
-                AccountAggregateManager.Tell(command);
-                
-                Emit(new MoneyTransferStartedEvent(domainEvent.AggregateEvent.Transaction));
-            }
+                var isNewSpec = new AggregateIsNewSpecification();
+                if (isNewSpec.IsSatisfiedBy(this))
+                {
+                    var command = new ReceiveMoneyCommand(
+                        domainEvent.AggregateEvent.Transaction.Receiver,
+                        domainEvent.AggregateEvent.Transaction);
 
-            return true;
+                    AccountAggregateManager.Tell(command);
+
+                    Emit(new MoneyTransferStartedEvent(domainEvent.AggregateEvent.Transaction));
+                }
+
+                return true;
+            }
+            catch (Exception excp)
+            {
+                throw new FooException(domainEvent, excp);
+            }
         }
 
         public bool Handle(IDomainEvent<Account, AccountId, MoneyReceivedEvent> domainEvent)
@@ -70,6 +78,15 @@ namespace Domain.Sagas.MoneyTransfer
             }
 
             return true;
+        }
+    }
+
+    public class FooException : Exception
+    {
+        public IDomainEvent EventTriggeringException { get; }
+        public FooException(IDomainEvent @event, Exception exception):base("A Foo Exception", exception)
+        {
+            EventTriggeringException = @event;
         }
     }
 }

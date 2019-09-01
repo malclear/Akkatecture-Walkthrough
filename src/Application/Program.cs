@@ -87,7 +87,7 @@ namespace Application
 
             //create command to initiate money transfer
             var amountToSend = new Money(125.23m);
-            var transaction = new Transaction(senderId, receiverId, amountToSend);
+            var transaction = new Transaction(senderId, receiverId, amountToSend, "Some reason");
             var transferMoneyCommand = new TransferMoneyCommand(senderId, transaction);
 
             //send the command to initiate the money transfer

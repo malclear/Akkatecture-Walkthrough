@@ -24,6 +24,7 @@
 using System;
 using Akkatecture.Entities;
 using Domain.Model.Account.ValueObjects;
+using Newtonsoft.Json;
 
 namespace Domain.Model.Account.Entities
 {
@@ -32,29 +33,34 @@ namespace Domain.Model.Account.Entities
         public AccountId Sender { get; }
         public AccountId Receiver { get; }
         public Money Amount { get; }
+        public string Reason { get; }
         
+        [JsonConstructor]
         public Transaction(
-            TransactionId entityId,
+            TransactionId id,
             AccountId sender,
             AccountId receiver, 
-            Money amount)
-            : base(entityId)
+            Money amount, 
+            string reason)
+            : base(id)
         {
             if (sender == null) throw new ArgumentNullException(nameof(sender));
             if (receiver == null) throw new ArgumentNullException(nameof(receiver));
             if(amount == null) throw new ArgumentNullException(nameof(amount));
             if(sender == receiver) throw new ArgumentException($"{nameof(Sender)} should be the same as {nameof(Receiver)}.");
-
+            
             Sender = sender;
             Receiver = receiver;
             Amount = amount;
+            Reason = reason;
         }
 
         public Transaction(
             AccountId sender,
             AccountId receiver,
-            Money amount)
-            :this(TransactionId.New,sender,receiver,amount)
+            Money amount, 
+            string reason)
+            :this(TransactionId.New,sender,receiver,amount, reason)
         {  
         }
     }

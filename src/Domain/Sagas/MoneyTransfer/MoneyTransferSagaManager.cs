@@ -23,6 +23,7 @@
 
 using System;
 using System.Linq.Expressions;
+using Akka.Actor;
 using Akkatecture.Sagas.AggregateSaga;
 
 namespace Domain.Sagas.MoneyTransfer
@@ -31,7 +32,22 @@ namespace Domain.Sagas.MoneyTransfer
     {
         public MoneyTransferSagaManager(Expression<Func<MoneyTransferSaga>> factory)
             : base(factory)
-        {        
+        {
+        }
+        
+        protected override SupervisorStrategy SupervisorStrategy()
+        {
+            return new OneForOneStrategy(10, 10, exception =>
+            {
+                if (exception is FooException)
+                {
+                    Console.WriteLine("************** Custom exception received ****************");
+                    Console.WriteLine((exception as FooException).EventTriggeringException.GetType());
+                    return Directive.Resume;
+                }
+                else return Directive.Stop;
+                //else return Akka.Actor.SupervisorStrategy.DefaultDecider(exception);
+            });
         }
     }
 }

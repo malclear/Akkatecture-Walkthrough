@@ -36,12 +36,11 @@ namespace Domain.Sagas.MoneyTransfer
         public void Apply(MoneyTransferStartedEvent aggregateEvent)
         {
             Transaction = aggregateEvent.Transaction;
-            Start();
+
         }
 
         public void Apply(MoneyTransferCompletedEvent aggregateEvent)
         {
-           Complete();
         }
     }
 }
