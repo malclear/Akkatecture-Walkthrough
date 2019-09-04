@@ -49,23 +49,30 @@ namespace Domain.Sagas.MoneyTransfer
         {
             try
             {
-                var isNewSpec = new AggregateIsNewSpecification();
-                if (isNewSpec.IsSatisfiedBy(this))
+// Note that on event replays, the aggregate no longer appears "new".                
+//                var isNewSpec = new AggregateIsNewSpecification();
+//                if (isNewSpec.IsSatisfiedBy(this))
+//                {
+                if (!this.State.EventsSeen.Contains(domainEvent.GetIdentity()))
                 {
-                    var command = new ReceiveMoneyCommand(
-                        domainEvent.AggregateEvent.Transaction.Receiver,
-                        domainEvent.AggregateEvent.Transaction);
-
-                    AccountAggregateManager.Tell(command);
-
-                    Emit(new MoneyTransferStartedEvent(domainEvent.AggregateEvent.Transaction));
+                    Emit(new EventWasSeen(domainEvent.GetIdentity()));
+                    throw new Exception("I've not seen this event before.");
                 }
+
+                var command = new ReceiveMoneyCommand(
+                    domainEvent.AggregateEvent.Transaction.Receiver,
+                    domainEvent.AggregateEvent.Transaction);
+
+                AccountAggregateManager.Tell(command);
+
+                Emit(new MoneyTransferStartedEvent(domainEvent.AggregateEvent.Transaction));
+//                }
 
                 return true;
             }
             catch (Exception excp)
             {
-                throw new FooException(domainEvent, excp);
+                throw new SagaHandlerException(excp, domainEvent);
             }
         }
 
@@ -79,12 +86,14 @@ namespace Domain.Sagas.MoneyTransfer
 
             return true;
         }
+
+
     }
 
-    public class FooException : Exception
+    public class SagaHandlerException : Exception
     {
         public IDomainEvent EventTriggeringException { get; }
-        public FooException(IDomainEvent @event, Exception exception):base("A Foo Exception", exception)
+        public SagaHandlerException( Exception exception, IDomainEvent @event):base("A SagaHandler exception.", exception)
         {
             EventTriggeringException = @event;
         }

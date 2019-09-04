@@ -22,32 +22,65 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 using Akka.Actor;
+using Akkatecture.Aggregates;
+using Akkatecture.Core;
 using Akkatecture.Sagas.AggregateSaga;
 
 namespace Domain.Sagas.MoneyTransfer
 {
     public class MoneyTransferSagaManager : AggregateSagaManager<MoneyTransferSaga,MoneyTransferSagaId,MoneyTransferSagaLocator>
     {
+        // 
+        public Dictionary<IIdentity, EventException> EventExceptions { get; } 
         public MoneyTransferSagaManager(Expression<Func<MoneyTransferSaga>> factory)
             : base(factory)
         {
+            EventExceptions = new Dictionary<IIdentity, EventException>();
+            Receive<RetryFailedMessages>(msg => RetryMessages() );
         }
-        
+
+        private bool RetryMessages()
+        {
+            foreach (var asdf in EventExceptions)
+            {
+                Self.Tell(asdf.Value.FailedEvent);
+            }
+
+            return true;
+        }
+
         protected override SupervisorStrategy SupervisorStrategy()
         {
             return new OneForOneStrategy(10, 10, exception =>
             {
-                if (exception is FooException)
+                if (exception is SagaHandlerException)
                 {
-                    Console.WriteLine("************** Custom exception received ****************");
-                    Console.WriteLine((exception as FooException).EventTriggeringException.GetType());
+                    var ete = exception as SagaHandlerException;
+                    Logger.Warning($"******* A SagaHandlerException was received ------> " +
+                                   $"{ete.EventTriggeringException.GetType().Name}");
+                   
+                    EventExceptions.Add(ete.EventTriggeringException.GetIdentity(), 
+                        new EventException(ete.EventTriggeringException, ete.InnerException)
+                        );
                     return Directive.Resume;
                 }
                 else return Directive.Stop;
-                //else return Akka.Actor.SupervisorStrategy.DefaultDecider(exception);
             });
+        }
+    }
+
+    public class EventException
+    {
+        public IDomainEvent FailedEvent { get; }
+        public Exception Exception { get; }
+
+        public EventException(IDomainEvent failedEvent, Exception exception)
+        {
+            FailedEvent = failedEvent;
+            Exception = exception;
         }
     }
 }

@@ -38,9 +38,6 @@ namespace Application
 {
     public class Program
     {
-        public static IActorRef AccountManager { get; set; }
-        public static IActorRef RevenueRepository { get; set; }
-
         public static void CreateActorSystem()
         {
             //Create actor system
@@ -56,12 +53,17 @@ namespace Application
             system.ActorOf(Props.Create(() => new RevenueSubscriber(revenueRepository)), "revenue-subscriber");
 
             //Create saga manager for money transfer
-            system.ActorOf(Props.Create(() =>
+            var sagaManager = system.ActorOf(Props.Create(() =>
                 new MoneyTransferSagaManager(() => new MoneyTransferSaga(aggregateManager))), "moneytransfer-saga");
 
             AccountManager = aggregateManager;
             RevenueRepository = revenueRepository;
+            SagaManager = sagaManager;
         }
+
+        public static IActorRef SagaManager { get; set; }
+        public static IActorRef AccountManager { get; set; }
+        public static IActorRef RevenueRepository { get; set; }
 
         public static async Task Main(string[] args)
         {
@@ -94,7 +96,8 @@ namespace Application
             AccountManager.Tell(transferMoneyCommand);
 
             //fake 'wait' to let the saga process the chain of events
-            await Task.Delay(TimeSpan.FromSeconds(1));
+            await Task.Delay(TimeSpan.FromSeconds(5));
+            SagaManager.Tell(new RetryFailedMessages());
             
             Console.WriteLine("Walkthrough operations complete.\n\n");
             Console.WriteLine("Press Enter to get the revenue:");

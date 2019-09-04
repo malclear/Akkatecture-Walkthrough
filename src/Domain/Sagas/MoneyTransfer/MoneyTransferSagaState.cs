@@ -21,26 +21,40 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+using System.Collections.Generic;
+using System.Linq;
 using Akkatecture.Aggregates;
+using Akkatecture.Core;
 using Akkatecture.Sagas;
 using Domain.Model.Account.Entities;
 using Domain.Sagas.MoneyTransfer.Events;
 
 namespace Domain.Sagas.MoneyTransfer
 {
-    public class MoneyTransferSagaState : SagaState<MoneyTransferSaga,MoneyTransferSagaId, IMessageApplier<MoneyTransferSaga, MoneyTransferSagaId>>,
+    public class MoneyTransferSagaState : SagaState<MoneyTransferSaga,MoneyTransferSagaId, 
+            IMessageApplier<MoneyTransferSaga, MoneyTransferSagaId>>,
         IApply<MoneyTransferStartedEvent>,
         IApply<MoneyTransferCompletedEvent>
     {
+        public MoneyTransferSagaState()
+        {
+            EventsSeen = new HashSet<IIdentity>();
+        }
+
         public Transaction Transaction { get; private set; }
+        public HashSet<IIdentity> EventsSeen { get; private set; } 
         public void Apply(MoneyTransferStartedEvent aggregateEvent)
         {
             Transaction = aggregateEvent.Transaction;
-
         }
 
         public void Apply(MoneyTransferCompletedEvent aggregateEvent)
         {
+        }
+
+        public void Apply(EventWasSeen eventWasSeen)
+        {
+            EventsSeen.Add(eventWasSeen.DomainEventId);
         }
     }
 }
